@@ -71,104 +71,56 @@ public class CentralPixelsFinder {
 
         Integer[] depths = new Integer[pixels.length];
 
-        Integer maxDepth = 1;
-        Integer maxDepthCount = 0;
+        int maxDepth = 1;
+        int maxDepthCount = 0;
 
-        boolean hasInner = false;
         for (int i = 0; i < pixels.length; i++) {
             if (pixels[i] == colour) {
-                if (isBorderIndex(i)) {
-                    depths[i] = maxDepth;
+                depths[i] = getNeighbourDepthLeftUp(depths, i) + 1;
+            }
+        }
+
+        for (int i = depths.length - 1; i >= 0; i--) {
+            if (depths[i] != null) {
+                Integer neighbourDepth = getNeighbourDepthRightDown(depths, i);
+                if (depths[i] > neighbourDepth + 1) {
+                    depths[i] = neighbourDepth + 1;
+                }
+                if (maxDepth == depths[i]) {
                     maxDepthCount++;
-                } else {
-                    depths[i] = 0;
-                    hasInner = true;
+                }
+                if (maxDepth < depths[i]) {
+                    maxDepth = depths[i];
+                    maxDepthCount = 1;
                 }
             }
         }
 
-        if (hasInner) {
-
-            for (int i = 0; i < depths.length; i++) {
-                if (depths[i] == 0) {
-                    Integer neighbourDepth = getNeighbourDepth(depths, i);
-
-
-
-
-                    if (isBorderIndex(i)) {
-                        depths[i] = maxDepth;
-                    } else {
-                        depths[i] = 0;
-                    }
-                }
-            }
-
-        }
 
         int[] result = new int[maxDepthCount];
         int index = 0;
         for (int i = 0; i < depths.length; i++) {
-            if (depths[i] == maxDepth) {
+            if (depths[i] != null && depths[i] == maxDepth) {
                 result[index++] = i;
             }
         }
         return result;
     }
 
-    private boolean isBorderIndex(int currentIndex) {
-        int neighborIndex;
-        neighborIndex = getLeftPixelIndex(currentIndex);
-        if (neighborIndex == -1 || pixels[neighborIndex] != pixels[currentIndex]) {
-            return true;
-        }
-        neighborIndex = getRightPixelIndex(currentIndex);
-        if (neighborIndex == -1 || pixels[neighborIndex] != pixels[currentIndex]) {
-            return true;
-        }
-        neighborIndex = getUpPixelIndex(currentIndex);
-        if (neighborIndex == -1 || pixels[neighborIndex] != pixels[currentIndex]) {
-            return true;
-        }
-        neighborIndex = getDownPixelIndex(currentIndex);
-        if (neighborIndex == -1 || pixels[neighborIndex] != pixels[currentIndex]) {
-            return true;
-        }
-        return false;
+    private int getNeighbourDepthLeftUp(Integer[] depths, int currentIndex) {
+        int l = getLeftPixelIndex(currentIndex);
+        if (l == -1 || depths[l] == null) return 0;
+        int u = getUpPixelIndex(currentIndex);
+        if (u == -1 || depths[u] == null) return 0;
+        return Math.min(depths[l], depths[u]);
     }
 
-    private int getNeighbourDepth(Integer[] depths, int currentIndex) {
-        int l = getLeftPixelIndex(currentIndex);
+    private int getNeighbourDepthRightDown(Integer[] depths, int currentIndex) {
         int r = getRightPixelIndex(currentIndex);
-        int u = getUpPixelIndex(currentIndex);
+        if (r == -1 || depths[r] == null) return 0;
         int d = getDownPixelIndex(currentIndex);
-
-        Integer neighbourDepth = depths[l];
-        if (neighbourDepth == 0 || neighbourDepth < depths[r]) {
-            neighbourDepth = depths[r];
-        }
-        if (neighbourDepth == 0 || neighbourDepth < depths[u]) {
-            neighbourDepth = depths[u];
-        }
-        if (neighbourDepth == 0 || neighbourDepth < depths[d]) {
-            neighbourDepth = depths[d];
-        }
-        return neighbourDepth;
-    }
-
-
-
-    private boolean isNearBorderIndex(List<Integer> borderIndexes, int currentIndex) {
-        int l = getLeftPixelIndex(currentIndex);
-        int r = getRightPixelIndex(currentIndex);
-        int u = getUpPixelIndex(currentIndex);
-        int d = getDownPixelIndex(currentIndex);
-        for (int i : borderIndexes) {
-            if (i == l || i == r || i == u || i == d) {
-                return true;
-            }
-        }
-        return false;
+        if (d == -1 || depths[d] == null) return 0;
+        return Math.min(depths[r], depths[d]);
     }
 
     private int getLeftPixelIndex(int currentIndex) {
@@ -193,7 +145,7 @@ public class CentralPixelsFinder {
     }
 
     private int getDownPixelIndex(int currentIndex) {
-        if (currentIndex > pixels.length - width) {
+        if (currentIndex >= pixels.length - width) {
             return -1;
         }
         return currentIndex + width;
